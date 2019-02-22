@@ -1,0 +1,535 @@
+#include "Include/GL/freeglut.h"
+#include <time.h>
+#include <iostream>
+#include <algorithm>
+#include "Include/glm/ext.hpp"
+#include <Windows.h>
+#include <mmsystem.h>
+#include <math.h>
+
+using namespace std;
+
+int g_window_w = 800;
+int g_window_h = 800;
+
+static double time1 = 0;
+static double time2 = 0;
+static double time3 = 0;
+static double time4 = 0;
+static double time6 = 0;
+
+GLfloat R_Arm_x = 0;
+GLfloat R_Arm_y = 0;
+GLfloat L_Arm_x = 0;
+GLfloat L_Arm_y = 0;
+GLfloat R_Leg_x = 0;
+GLfloat R_Leg_y = 0;
+GLfloat L_Leg_x = 0;
+GLfloat L_Leg_y = 0;
+GLfloat R = 0;
+GLfloat R2 = 0;
+
+GLUquadricObj* cyl;
+
+int a = 0, b = 0, c = 0;
+
+static int flag = 0;
+static int key = 0;
+
+#define RUN 1
+#define JAP 2
+#define ROCKET 3
+#define YUNA 4
+#define EXIT 6
+
+void glInit(void) {
+	glEnable(GL_DEPTH_TEST);
+	glEnable(GL_NORMALIZE);
+	glEnable(GL_SMOOTH);
+	glEnable(GL_LIGHTING);
+	GLfloat ambientLight[] = { 0.3f, 0.3f, 0.3f, 1.0f };
+	GLfloat diffuseLight[] = { 0.7f, 0.7f, 0.7f, 1.0f };
+	GLfloat specular[] = { 1.0f, 1.0f, 1.0f, 1.0f };
+	GLfloat specref[] = { 1.0f, 1.0f, 1.0f, 1.0f };
+	GLfloat position[] = { 400.0, 300.0, -700.0, 1.0 };
+	glLightfv(GL_LIGHT0, GL_POSITION, ambientLight);
+	glLightfv(GL_LIGHT0, GL_DIFFUSE, diffuseLight);
+	glLightfv(GL_LIGHT0, GL_SPECULAR, specular);
+	glLightfv(GL_LIGHT0, GL_AMBIENT, position);
+	glEnable(GL_LIGHT0);
+	glEnable(GL_COLOR_MATERIAL);
+	glColorMaterial(GL_FRONT, GL_AMBIENT_AND_DIFFUSE);
+	glMateriali(GL_FRONT, GL_SHININESS, 128);
+	glClearColor(1.0, 1.0, 1.0, 1.0);
+	glMatrixMode(GL_PROJECTION);
+	glLoadIdentity();
+	glOrtho(-1.0, 1.0, -1.0, 1.0, -1.0, 1.0);
+}
+void Draw_Color(int i) {
+	if (i == RUN) glColor3f(0.0, 1.0, 0.0);
+	else if(i==JAP) glColor3f(1.0, 1.0, 0.0);
+	else if(i==ROCKET) glColor3f(0.0, 1.0, 1.0);
+	else if(i==YUNA) glColor3f(1.0, 0.0, 1.0);
+	else if(i==EXIT) glColor3f(0.2, 0.2, 0.2);
+}
+
+void Change_Wire_Or_Solid(int i) {
+	if (flag == 1) gluQuadricDrawStyle(cyl, GLU_LINE);
+}
+
+void DrawL_Arm(int x, int a, int b, int c) {
+	glPushMatrix();
+	Draw_Color(key);
+	cyl = gluNewQuadric();
+	glRotatef(x, a, b, c);
+	glRotatef(90.0, 1.0, 0.0, 0.0);
+
+	glTranslatef(0.25, 0.0, 0.0);
+	glRotatef(15.0, 0.0, 1.0, 0.0);
+	Change_Wire_Or_Solid(flag);
+	gluCylinder(cyl, 0.05, 0.05, 0.2, 50, 1);
+}
+void DrawL_Hand(int y, int a, int b, int c) {
+	glPushMatrix();
+	Draw_Color(key);
+	cyl = gluNewQuadric();
+	glTranslatef(0.0, 0.0, 0.22);
+	glRotatef(y, a, b, c);
+	Change_Wire_Or_Solid(flag);
+	if (key == YUNA) gluCylinder(cyl, 0.05, 0.02, 0.2, 15, 1);
+	else gluCylinder(cyl, 0.05, 0.05, 0.2, 15, 1);
+
+	glPopMatrix();
+}
+void DrawL_HandRocket() {
+	glPushMatrix();
+	Draw_Color(key);
+	cyl = gluNewQuadric();
+	glTranslatef(0, 0, R);
+	Change_Wire_Or_Solid(flag);
+	gluCylinder(cyl, 0.05, 0.05, 0.2, 50, 1);
+	glPopMatrix();
+}
+void DrawR_Arm(int x, int a, int b, int c) {
+	glPushMatrix();
+	Draw_Color(key);
+	cyl = gluNewQuadric();
+	glRotatef(x, a, b, c);
+	glRotatef(90.0, 1.0, 0.0, 0.0);
+
+	glTranslatef(-0.25, 0.0, 0.0);
+	glRotatef(-15.0, 0.0, 1.0, 0.0);
+	Change_Wire_Or_Solid(flag);
+	gluCylinder(cyl, 0.05, 0.05, 0.2, 50, 1);
+}
+void DrawR_Hand(int y, int a, int b, int c) {
+	glPushMatrix();
+	Draw_Color(key);
+	cyl = gluNewQuadric();
+	glTranslatef(0.0, 0.0, 0.22);
+	glRotatef(y, a, b, c);
+	Change_Wire_Or_Solid(flag);
+	if (key == YUNA) gluCylinder(cyl, 0.05, 0.02, 0.2, 50, 1);
+	else gluCylinder(cyl, 0.05, 0.05, 0.2, 50, 1);
+
+	glPopMatrix();
+}
+void DrawR_HandRocket() {
+	glPushMatrix();
+	Draw_Color(key);
+	cyl = gluNewQuadric();
+	glTranslatef(0, 0, R2);
+	Change_Wire_Or_Solid(flag);
+	gluCylinder(cyl, 0.05, 0.05, 0.2, 50, 1);
+	glPopMatrix();
+}
+void DrawBody(int x, int a, int b, int c) {
+	glPushMatrix();
+	Draw_Color(key);
+	cyl = gluNewQuadric();
+	glRotatef(90.0, 1.0, 0.0, 0.0);
+	glRotatef(x, a, b, c);
+	Change_Wire_Or_Solid(flag);
+	gluCylinder(cyl, 0.2, 0.2, 0.45, 50, 1);
+	glPopMatrix();
+}
+void DrawL_Legs(int x, int a, int b, int c) {
+	glPushMatrix();
+	Draw_Color(key);
+	cyl = gluNewQuadric();
+	glRotatef(90.0, 1.0, 0.0, 0.0);
+	glTranslatef(0.1, 0.0, 0.42);
+	glRotatef(x, a, b, c);
+	Change_Wire_Or_Solid(flag);
+	gluCylinder(cyl, 0.05, 0.05, 0.15, 50, 1);
+}
+void DrawL_foot(int y, int a, int b, int c) {
+	glPushMatrix();
+	Draw_Color(key);
+	cyl = gluNewQuadric();
+	glTranslatef(0.0, 0.0, 0.18);
+	glRotatef(y, a, b, c);
+	Change_Wire_Or_Solid(flag);
+	if (key == YUNA) gluCylinder(cyl, 0.05, 0.03, 0.2, 50, 1);
+	else gluCylinder(cyl, 0.05, 0.05, 0.2, 50, 1);
+
+	glPopMatrix();
+}
+void DrawR_Legs(int x, int a, int b, int c) {
+	glPushMatrix();
+	Draw_Color(key);
+	cyl = gluNewQuadric();
+	glRotatef(90.0, 1.0, 0.0, 0.0);
+	glTranslatef(-0.1, 0.0, 0.42);
+	glRotatef(x, a, b, c);
+	Change_Wire_Or_Solid(flag);
+	gluCylinder(cyl, 0.05, 0.05, 0.15, 50, 1);
+}
+void DrawR_foot(int y, int a, int b, int c) {
+	glPushMatrix();
+	Draw_Color(key);
+	cyl = gluNewQuadric();
+	glTranslatef(0.0, 0.0, 0.18);
+	glRotatef(y, a, b, c);
+	Change_Wire_Or_Solid(flag);
+	if (key == YUNA) gluCylinder(cyl, 0.05, 0.03, 0.2, 15, 1);
+	else gluCylinder(cyl, 0.05, 0.05, 0.2, 15, 1);
+
+	glPopMatrix();
+}
+void DrawNeck() {
+	glPushMatrix();
+	glColor3f(1.0, 1.0, 1.0);
+	cyl = gluNewQuadric();
+	glRotatef(90.0, 1.0, 0.0, 0.0);
+
+	glTranslatef(0.0, 0.0, -0.045);
+	Change_Wire_Or_Solid(flag);
+	gluCylinder(cyl, 0.2, 0.2, 0.25, 100, 1);
+	glPopMatrix();
+}
+void DrawGround() {
+	Draw_Color(flag);
+	glTranslatef(0.0, -2.73, 0.0);
+	glRotatef(45.0, 0, 1, 0);
+	glRotatef(0.0 + time4 - 15, 0.0, 0.0, 1);
+	Change_Wire_Or_Solid(flag);
+	gluSphere(cyl, 2.5, 30, 90);
+}
+void DrawHead() {
+	glTranslatef(0.0, 0.02, 0.0); //머리 시작점
+	glPushMatrix();
+	cyl = gluNewQuadric();
+	Change_Wire_Or_Solid(flag);
+	Draw_Color(key);
+	gluSphere(cyl, 0.20, 30, 10);
+
+	glRotatef(90.0, 1.0, 0.0, 0.0); //왼쪽 뿔 그리기
+	glTranslatef(-0.16, 0.0, -0.22);
+	glRotatef(35.0, 0.0, 1.0, 0.0);
+	gluCylinder(cyl, 0.005, 0.008, 0.1, 3, 1);
+	glPopMatrix();
+	glPushMatrix();
+
+	glRotatef(90.0, 1.0, 0.0, 0.0); // 오른쪽 뿔 그리기
+	glTranslatef(0.16, 0.0, -0.22);
+	glRotatef(-35.0, 0.0, 1.0, 0.0);
+	gluCylinder(cyl, 0.005, 0.008, 0.1, 3, 1);
+	glPopMatrix();
+	glPushMatrix();
+
+	glTranslatef(-0.1, 0.1, 0.13); // 왼쪽 눈 그리기
+	glColor3f(0.0, 0.0, 0.0); //눈 색깔 지정
+	gluSphere(cyl, 0.03, 10, 10);
+	glPopMatrix();
+	glPushMatrix();
+
+	glTranslatef(0.1, 0.1, 0.13); //오른쪽 눈 그리기
+	gluSphere(cyl, 0.03, 10, 10);
+	glPopMatrix();
+}
+void DrawAndroid() {
+	DrawBody(0, 0, 0, 0);
+	DrawNeck();
+	DrawHead();
+	DrawR_Arm(R_Arm_x, 1, 0, 0);
+	if (key == ROCKET) DrawR_HandRocket();
+	else DrawR_Hand(R_Arm_y, 1, 0, 0);
+	DrawL_Arm(L_Arm_x, 1, 0, 0);
+	if (key == ROCKET) DrawL_HandRocket();
+	else DrawL_Hand(L_Arm_y, 1, 0, 0);
+	DrawL_Legs(L_Leg_x, 1, 0, 0);
+	DrawL_foot(L_Leg_y, 1, 0, 0);
+	DrawR_Legs(R_Leg_x, 1, 0, 0);
+	DrawR_foot(R_Leg_y, 1, 0, 0);
+}
+
+void Run() {
+	glLoadIdentity();
+	L_Arm_x = sin(time1) * 80;
+	R_Arm_x = -L_Arm_x;
+	R_Arm_y = -abs(sin(time1) * 60 + 50);
+
+	L_Arm_y = -abs(-sin(time1) * 60 + 50);
+	R_Leg_y = abs(-sin(time1) * 30 - 30);
+	L_Leg_y = abs(sin(time1) * 30 - 30);
+	R_Leg_x = sin(time1) * 60;
+	L_Leg_x = -R_Leg_x;
+
+	cyl = gluNewQuadric();
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	glMatrixMode(GL_MODELVIEW);
+
+	DrawGround();
+	glLoadIdentity();
+
+	glRotatef(-230.0, 0, 1, 0);
+	glRotatef(abs(sin(time1) * 16), 1, 0, 0);
+	glRotatef(sin(time1) * 16, 0, 1, 0);
+
+	float i = 0;
+	i = abs(sin(time1) * 0.08);
+	glPushMatrix();
+	
+	glTranslatef(0.0, i, 0);
+	glTranslatef(0.0, 0.5, 0.0);
+	DrawAndroid();
+	glutSwapBuffers();
+}
+void Jap() {
+	glLoadIdentity();
+	L_Arm_x = (-40) + sin(time2) * 60;
+	R_Arm_x = (-80) - L_Arm_x;
+	R_Arm_y = -abs(cos(time2) * 80);
+	L_Arm_y = -abs(-cos(time2) * 80);
+	R_Leg_y = abs(-sin(time1) * 30 - 20);
+	L_Leg_y = abs(sin(time1) * 30 - 20);
+	R_Leg_x = sin(time1) * 30;
+	L_Leg_x = -R_Leg_x;
+
+	cyl = gluNewQuadric();
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	glMatrixMode(GL_MODELVIEW);
+
+	DrawGround();
+	glLoadIdentity();
+	glRotatef(-230.0, 0, 1, 0);
+	glRotatef(sin(time1) * 10, 0, 0, 1);
+
+	float j = 0;
+	j = abs(sin(time2) * 0.085);
+	glPushMatrix();
+	glTranslatef(0.0, j, 0);
+	glTranslatef(0.0, 0.5, 0.0);
+	DrawAndroid();
+	glutSwapBuffers();
+}
+void ex() {
+	glLoadIdentity();
+
+	L_Arm_x = (-40) + sin(time2) * 60;
+	R_Arm_x = (-80) - L_Arm_x;
+	R_Arm_y = -abs(cos(time2) * 10);
+	L_Arm_y = -abs(-cos(time2) * 10);
+	R_Leg_y = abs(-sin(time1) * 30 - 30);
+	L_Leg_y = abs(sin(time1) * 30 - 30);
+	R_Leg_x = sin(time1) * 60;
+	L_Leg_x = -R_Leg_x;
+
+	cyl = gluNewQuadric();
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	glMatrixMode(GL_MODELVIEW);
+
+	glLoadIdentity();
+	glRotatef(-180, 0, 1, 0);
+	glRotatef(time6, 0, 0, 1);
+	glScalef(0.4 / (sin(time3)), 0.4 / (sin(time3)), 0.4 / (sin(time3)));
+
+	glPushMatrix();
+	glTranslatef(0.0, 0.5, 0.0);
+	DrawAndroid();
+	glutSwapBuffers();
+}
+void Show() {
+	glLoadIdentity();
+
+	L_Arm_x = (-40) + sin(time2) * 60;
+	R_Arm_x = (-80) - L_Arm_x;
+	R_Arm_y = -abs(cos(time2) * 10);
+	L_Arm_y = -abs(-cos(time2) * 10);
+	R_Leg_y = abs(-sin(time1) * 30 - 30);
+	L_Leg_y = abs(sin(time1) * 30 - 30);
+	R_Leg_x = sin(time1) * 60;
+	L_Leg_x = -R_Leg_x;
+
+	cyl = gluNewQuadric();
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	glMatrixMode(GL_MODELVIEW);
+
+	DrawGround();
+	glLoadIdentity();
+
+	glRotatef(-230.0, 0, 1, 0);
+	glRotatef(sin(time1) * 7, 0, 0, 1);
+	glRotatef(sin(time1) * 7, 0, 1, 0);
+
+	glTranslatef(0.0, 0.18, 0.0);
+	glRotatef(80, 1, 0, 0);
+	glTranslatef(0.0, 0.5, 0.0);
+	glPushMatrix();
+	DrawBody(0, 0, 0, 0);
+	glPopMatrix();
+	glPushMatrix();
+
+	DrawNeck();
+	glPopMatrix();
+	glPushMatrix();
+
+	glRotatef(-75, 1, 0, 0);
+	glTranslatef(0.0, -0.02, 0.0);
+	DrawHead();
+	glPopMatrix();
+	glPushMatrix();
+
+	DrawR_Arm((R_Arm_y + 30), 1, 0, 0);
+	DrawR_Hand(-(R_Arm_y - 15), 1, 0, 0);
+	glPopMatrix();
+	glPushMatrix();
+
+	glTranslatef(0.0, -0.16, -0.04);
+	glRotatef(40, 0, 0, 1);
+	DrawL_Arm((L_Arm_y + 30), 1, 0, 0);
+	DrawL_Hand(-(L_Arm_y - 15), 1, 0, 0);
+	glPopMatrix();
+	glPushMatrix();
+
+	glTranslatef(0.0, -0.45, -0.25);
+	glRotatef(-90, 1, 0, 0);
+	DrawL_Legs(-30, 1, 0, 0);
+	DrawL_foot(10, 1, 0, 0);
+	glPopMatrix();
+	glPushMatrix();
+
+	glTranslatef(0.0, -0.5, -0.5);
+	glRotatef(-90, 1, 0, 0);
+	DrawR_Legs(160, 1, 0, 0);
+	DrawR_foot(R_Leg_y, 1, 0, 0);
+	glPopMatrix();
+	glutSwapBuffers();
+}
+void Rocket() {
+	glLoadIdentity();
+	L_Arm_x = -90;
+	R_Arm_x = -90;
+	R = 2 * abs(-sin(time1) * 0.2 - 0.2) + 0.2;
+
+	R2 = 2 * abs(sin(time2) * 0.2 - 0.2) + 0.2;
+	R_Leg_y = abs(-sin(time1) * 30 - 30);
+	L_Leg_y = abs(sin(time1) * 30 - 30);
+	R_Leg_x = sin(time1) * 60;
+	L_Leg_x = -R_Leg_x;
+
+	cyl = gluNewQuadric();
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	glMatrixMode(GL_MODELVIEW);
+
+	DrawGround();
+	glLoadIdentity();
+	glPushMatrix();
+	glRotatef(-230.0, 0, 1, 0);
+
+	glRotatef(-abs(sin(time1) * 8), 1, 0, 0);
+	glRotatef(sin(time1) * 7, 0, 0, 1);
+
+	float i = 0;
+	i = abs(sin(time1) * 0.08);
+	glTranslatef(0.0, i, 0);
+	glTranslatef(0.0, 0.5, 0.0);
+	DrawAndroid();
+	glutSwapBuffers();
+}
+
+void Display();
+void Keyboard(unsigned char key, int x, int y);
+void Timer(int value);
+void MainMenu(int entryID);
+
+int main(int argc, char **argv) {
+	//초기화
+	glutInit(&argc, argv);
+	glutInitDisplayMode(GLUT_RGB | GLUT_DOUBLE | GLUT_DEPTH);
+	glutInitWindowSize(g_window_w, g_window_h);
+	glutInitWindowPosition(0, 0);
+	glutCreateWindow("Open");
+	glInit();
+	GLint MainMenuID = glutCreateMenu(MainMenu);
+	glutAddMenuEntry("Run", 1);
+	glutAddMenuEntry("Jap", 2);
+	glutAddMenuEntry("Shoot", 3);
+	glutAddMenuEntry("Skate", 4);
+	glutAddMenuEntry("Stop", 5);
+	glutAttachMenu(GLUT_RIGHT_BUTTON);
+	glutKeyboardFunc(Keyboard);
+	glutTimerFunc(40, Timer, 1);
+	glutDisplayFunc(Display);
+	glutMainLoop();
+
+	return 0;
+}
+
+void Display() {
+	if (key == RUN) {
+		Run();
+		glPopMatrix();
+	}
+	else if (key == JAP) {
+		Jap();
+		glPopMatrix();
+	}
+	else if (key == ROCKET) {
+		Rocket();
+		glPopMatrix();
+	}
+	else if (key == YUNA) {
+		Show();
+		glPopMatrix();
+	}
+	else if (key == 5) {
+		//Rocket();
+		//glPopMatrix();
+	}
+	else if (key == EXIT) {
+		ex();
+		glPopMatrix();
+	}
+}
+void Keyboard(unsigned char key, int x, int y) {
+	switch (key) {
+	case 'Q':
+		exit(0); break;
+	case 'q':
+		exit(0); break;
+	case 27:
+		exit(0); break;
+	case 's':
+		flag = 0;
+		break;
+	case 'w' :
+		flag = 1;
+		break;
+	case 'e' :
+		key = 6;
+		break;
+	}
+}
+void Timer(int value) {
+	time1 += 0.1;
+	time2 += 0.5;
+	time3 += 0.01;
+	time4 += 1.0;
+	glutPostRedisplay();
+	glutTimerFunc(40, Timer, 1);
+}
+void MainMenu(int entryID) {
+	key = entryID;
+}
