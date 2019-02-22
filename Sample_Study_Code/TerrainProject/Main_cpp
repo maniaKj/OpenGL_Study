@@ -1,0 +1,131 @@
+Main.cpp
+
+#include <stdio.h>
+#include <math.h>
+#include "terrain.h"
+#include "skybox.h"
+#include "Include/GL/GLAux.h" // auxDIGImageLoad() 함수 사용
+#include "Include/GL/freeglut.h"
+
+#pragma comment (lib, "Lib/Glaux.lib") //glaux 쓰려면 해줘야 함
+#pragma comment (lib, "legacy_stdio_definitions.lib")  //glaux 쓰려면 해줘야 함.
+#pragma comment (lib, "Lib/OPENGL32.LIB")
+#pragma comment (lib, "Lib/glut32.lib")
+#pragma comment (lib, "Lib/GLU32.LIB")
+#pragma comment (lib, "Lib/freeglut.lib")
+
+//객체 선언
+Terrain *terrain;
+Skybox *skybox;
+Camera cam;
+
+bool keyPressed[256];
+void Keyboard(unsigned char key, int x, int y) { keyPressed[key] = true; }
+void Keyboardup(unsigned char key, int x, int y) { keyPressed[key] = false; }
+
+void dispose(); //종료 시 수행되는 함수
+void display();
+void Idle();
+void Reshape(GLint w, GLint h);
+void fog();
+
+void display() {
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	glMatrixMode(GL_MODELVIEW);
+	glPushMatrix();
+	glTranslatef(cam.eye.x, cam.eye.y, cam.eye.z);
+	skybox->draw();
+	glPopMatrix();
+	glScalef(1.0f, 0.2f, 1.0f);
+	glPushMatrix();
+	terrain->RenderTerrain(cam.eye.x, cam.eye.z);
+	//지형을 그림. 카메라가 위치한 타일 블록의 좌표를 계산하기 위해 좌표를 넘김
+	glPopMatrix();
+	fog();
+	glFlush();
+	glutSwapBuffers();
+}
+
+void Idle() {
+	if (keyPressed['1']) glPolygonMode(GL_FRONT, GL_LINE);
+	if (keyPressed['2']) glPolygonMode(GL_FRONT, GL_FILL);
+	if (keyPressed['d']) cam.slide(2, 0, 0);
+	if (keyPressed['a']) cam.slide(-2, 0, 0);
+	if (keyPressed['s']) cam.slide(0, 0, 8);
+	if (keyPressed['w']) cam.slide(0, 0, -8);
+	if (cam.eye.y < terrain->getHeight(cam.eye.x, cam.eye.z)) { cam.slide(0, 1.0, 0); }
+	//간단한 충돌 탐지, 지표면 아래로 카메라가 내려갈 때는 지표면 위로 유지시킴
+	if (keyPressed['k']) cam.pitch(-5);
+	if (keyPressed['i']) cam.pitch(5);
+	if (keyPressed['q']) cam.yaw(-5);
+	if (keyPressed['e']) cam.yaw(5);
+	if (keyPressed['j']) cam.roll(-5);
+	if (keyPressed['l']) cam.roll(5);
+	else { cam.slide(0, 0, 0); }
+
+	glutPostRedisplay();
+}
+
+void Reshape(GLint w, GLint h) {
+	glViewport(0, 0, w, h);
+	glMatrixMode(GL_PROJECTION);
+	glLoadIdentity();
+	gluPerspective(40.0, static_cast<GLdouble>(w / h), 1.0, 3000.0);
+}
+
+void dispose() {
+	delete terrain;
+	delete skybox;
+	delete &cam;
+}
+
+void fog() {
+	glEnable(GL_FOG);
+	glFogi(GL_FOG_MODE, GL_EXP2); //안개의 농도 차이를 결정하는 인자
+	GLfloat waterFogColor[4] = { 0.0, 0.6, 0.6, 5.0 };
+	GLfloat fogColor[4] = { 0.75, 0.75, 0.75, 0.0 };
+	if (cam.eye.y < (terrain->waterLevel - 75)) {//시점의 높이가 물 표면 보다 낮으면, 즉 물에 있다면
+		glFogfv(GL_FOG_COLOR, waterFogColor); //안개 색상, 거리 변경
+		glFogf(GL_FOG_DENSITY, 0.075);
+	}
+	else {
+		glFogfv(GL_FOG_COLOR, fogColor);
+		glFogf(GL_FOG_DENSITY, 0.001);
+	}
+}
+
+int main(int argc, char **argv) {
+	glutInit(&argc, argv); //초기 설정
+	glutInitDisplayMode(GLUT_RGB | GLUT_DEPTH | GLUT_DOUBLE);
+	glutInitWindowSize(640, 480);
+	glutInitWindowPosition(400, 30);
+	glutCreateWindow("OpenGL Studying Sample");
+	glutReshapeFunc(Reshape);
+	glutDisplayFunc(display);
+	glutIdleFunc(Idle);
+	glutKeyboardFunc(Keyboard);
+	glutKeyboardUpFunc(Keyboardup);
+	glEnable(GL_DEPTH_TEST);
+	glEnable(GL_CULL_FACE);
+	terrain = new Terrain("Resource/Surface/height_map_01.raw", "Resource/Surface/Snow_Seamless.bmp", 257, 257);
+	skybox = new Skybox();
+
+	cam.set(4, 4, 4, 0, 0, 0, 0, 1, 0); //카메라 설정
+	cam.setShape(60.0f, 64.0f / 48.0f, 0.5f, 1000.0f);
+
+	cam.slide(0, 100, 0);
+	cam.roll(0);
+	cam.yaw(180);
+	cam.pitch(45);
+	atexit(dispose);
+	printf("W : forward S : backward A : Left D : Right \n"); //키 설명
+	printf("JL : roll \n");
+	printf("IK : pitch \n");
+	printf("QE : yaw\n\n");
+	printf("1,2: solid, wire rendering\n");
+
+	glutMainLoop();
+	return 0;
+
+}
+
