@@ -1,0 +1,35 @@
+#include "Include/GL/freeglut.h"
+
+int width, height;
+
+void Display() {
+	glClear(GL_COLOR_BUFFER_BIT);
+	glColor3f(0.3, 0.3, 0.7);
+	glutWireTeapot(1.0);
+	glFlush();
+}
+
+void Reshape(int w, int h) {
+	glViewport(0, 0, (GLsizei)w, (GLsizei)h); //창크기가 변하면 뷰포트 크기 변화
+	glMatrixMode(GL_PROJECTION);
+	glLoadIdentity();
+	gluPerspective(30, (GLdouble)w / (GLdouble)h, 1.0, 50.0); //원근 투상 가시 부피의 종횡비를 뷰 포트 종횡비에 일치시킨다.
+	glMatrixMode(GL_MODELVIEW);
+	glLoadIdentity();
+	gluLookAt(5.0, 5.0, 5.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0);
+	glutPostRedisplay();
+}
+
+int main(int argc, char **argv) {
+	glutInit(&argc, argv);
+	width = 500; height = 500;
+	glutInitDisplayMode(GLUT_SINGLE | GLUT_RGBA);
+	glutInitWindowSize(width, height);
+	glutInitWindowPosition(0, 0);
+	glutCreateWindow("OpenGL Studying Sample");
+	glClearColor(1.0, 1.0, 1.0, 1.0);
+	glutDisplayFunc(Display);
+	glutReshapeFunc(Reshape);
+	glutMainLoop();
+	return 0;
+}
