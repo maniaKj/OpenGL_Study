@@ -1,0 +1,48 @@
+#include "Include/GL/freeglut.h"
+#include <math.h>
+
+int width, height;
+
+void Display() {
+	glClear(GL_COLOR_BUFFER_BIT);
+	glColor3f(0.0, 0.0, 0.0);
+	glEnable(GL_BLEND);// 혼합 기능 활성화
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA); //혼합 모드 설정
+
+	glEnable(GL_POINT_SMOOTH); //부드러운 점 기능 활성화, 이후 disable로 비활성화
+	glHint(GL_POINT_SMOOTH_HINT, GL_NICEST); //GL에 힌트 전달, gl_nicest는 느리더라도 질 좋은 처리 요구
+	glPointSize(12);
+	glBegin(GL_POINTS);
+	glVertex3f(-0.9, -0.65, 0);
+	glEnd();
+	glDisable(GL_POINT_SMOOTH);
+
+	glEnable(GL_LINE_SMOOTH);
+	glHint(GL_LINE_SMOOTH_HINT, GL_NICEST);
+	glBegin(GL_LINES);
+	glVertex3f(-1.0, -0.6, 0.0);
+	glVertex3f(1.0, -0.2, 0.0);
+	glVertex3f(-1.0, -0.6, 0.0);
+	glVertex3f(0.75, 1.0, 0.0);
+	glVertex3f(-1.0, -0.6, 0.0);
+	glVertex3f(-0.75, 1.0, 0.0);
+	glEnd();
+	glDisable(GL_LINE_SMOOTH);
+
+	glDisable(GL_BLEND);
+	glFlush();
+}
+
+
+int main(int argc, char **argv) {
+	glutInit(&argc, argv);
+	width = 700; height = 700;
+	glutInitDisplayMode(GLUT_SINGLE | GLUT_RGBA | GLUT_DEPTH);
+	glutInitWindowSize(width, height);
+	glutInitWindowPosition(0, 0);
+	glutCreateWindow("OpenGL Studying Sample");
+	glClearColor(0.5, 0.5, 0.5, 0.0);
+	glutDisplayFunc(Display);
+	glutMainLoop();
+	return 0;
+}
