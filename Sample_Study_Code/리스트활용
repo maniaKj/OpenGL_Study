@@ -1,0 +1,54 @@
+#include "Include/GL/freeglut.h"
+#include <time.h>
+#include <iostream>
+#include <algorithm>
+#include "Include/glm/ext.hpp"
+
+using namespace std;
+
+int g_window_w = 500;
+int g_window_h = 500;
+
+int listID;
+
+void Display();
+void CreateList();
+
+int main(int argc, char **argv) {
+	//초기화
+	glutInit(&argc, argv);
+	glutInitDisplayMode(GLUT_RGB);
+	glutInitWindowSize(g_window_w, g_window_h);
+	glutInitWindowPosition(0, 0);
+	glutCreateWindow("Open");
+	glClearColor(0.0, 0.0, 0.0, 0.0);
+	glMatrixMode(GL_PROJECTION);
+	glLoadIdentity();
+	glOrtho(-1.0, 1.0, -1.0, 1.0, -1.0, 1.0);
+
+	//일반 기능
+	glutDisplayFunc(Display);// 화면 표시
+	CreateList();
+	glutMainLoop();
+
+	return 0;
+}
+
+void Display() {
+	glClear(GL_COLOR_BUFFER_BIT);
+	glViewport(0, 0, 300, 300);
+	glCallList(listID);
+	glFlush();
+}
+void CreateList() {
+	listID = glGenLists(1);
+	glNewList(listID, GL_COMPILE);
+	glBegin(GL_POLYGON);
+	glColor3f(0.5, 0.5, 0.5);
+	glVertex3f(-0.5, -0.5, 0.0);
+	glVertex3f(0.5, -0.5, 0.0);
+	glVertex3f(0.5, 0.5, 0.0);
+	glVertex3f(-0.5, 0.5, 0.0);
+	glEnd();
+	glEndList();
+}
