@@ -1,0 +1,125 @@
+
+#include "Include/GL/freeglut.h"
+#include <time.h>
+#include <iostream>
+#include <algorithm>
+#include "Include/glm/ext.hpp"
+
+using namespace std;
+
+int g_window_w = 500;
+int g_window_h = 500;
+
+int FlatShaded = 0, Wireframed = 0;
+int ViewX = 0, ViewY = 0;
+
+int listID;
+
+void Display();
+void CreateList();
+void InitLight();
+void MouseMove(GLint X, GLint Y);
+void Keyboard(unsigned char key, int x, int y);
+void Reshape(int w, int h);
+
+int main(int argc, char **argv) {
+	//초기화
+	glutInit(&argc, argv);
+	glutInitDisplayMode(GLUT_SINGLE | GLUT_RGBA | GLUT_DEPTH);
+	glutInitWindowSize(g_window_w, g_window_h);
+	glutInitWindowPosition(0, 0);
+	glutCreateWindow("Open");
+	glClearColor(0.4, 0.4, 0.4, 0.0);
+
+	//일반 기능
+	InitLight();
+	glutDisplayFunc(Display);// 화면 표시
+	glutReshapeFunc(Reshape);
+	glutKeyboardFunc(Keyboard);
+	glutMotionFunc(MouseMove);
+
+	glutMainLoop();
+
+	return 0;
+}
+
+void Display() {
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	glMatrixMode(GL_MODELVIEW);
+	glLoadIdentity();
+	
+	//gluLookAt()
+
+	glutSolidTeapot(0.2);
+	glFlush();
+}
+void CreateList() {
+	listID = glGenLists(1);
+	glNewList(listID, GL_COMPILE);
+	glBegin(GL_POLYGON);
+	glColor3f(0.5, 0.5, 0.5);
+	glVertex3f(-0.5, -0.5, 0.0);
+	glVertex3f(0.5, -0.5, 0.0);
+	glVertex3f(0.5, 0.5, 0.0);
+	glVertex3f(-0.5, 0.5, 0.0);
+	glEnd();
+	glEndList();
+}
+void InitLight() {
+	GLfloat mat_diffuse[] = { 0.5, 0.4, 0.3, 1.0 };
+	GLfloat mat_specular[] = { 1.0, 1.0, 1.0, 1.0 };
+	GLfloat mat_ambient[] = { 0.5, 0.4, 0.3, 1.0 };
+	GLfloat mat_shininess[] = { 15.0 };
+	GLfloat light_specular[] = { 1.0, 1.0, 1.0, 1.0 };
+	GLfloat light_diffuse[] = { 0.8, 0.8, 0.8, 1.0 };
+	GLfloat light_ambient[] = { 0.3, 0.3, 0.3, 1.0 };
+	GLfloat light_position[] = { -3, 6, 3.0, 0.0 };
+	glShadeModel(GL_SMOOTH);
+	glEnable(GL_DEPTH_TEST);
+	glEnable(GL_LIGHTING);
+	glEnable(GL_LIGHT0);
+	glLightfv(GL_LIGHT0, GL_POSITION, light_position);
+	glLightfv(GL_LIGHT0, GL_DIFFUSE, light_diffuse);
+	glLightfv(GL_LIGHT0, GL_SPECULAR, light_specular);
+	glLightfv(GL_LIGHT0, GL_AMBIENT, light_ambient);
+	glMaterialfv(GL_FRONT, GL_DIFFUSE, mat_diffuse);
+	glMaterialfv(GL_FRONT, GL_SPECULAR, mat_specular);
+	glMaterialfv(GL_FRONT, GL_AMBIENT, mat_ambient);
+	glMaterialfv(GL_FRONT, GL_SHININESS, mat_shininess);
+}
+
+void MouseMove(GLint X, GLint Y) {
+	ViewX = X;
+	ViewY = Y;
+	glutPostRedisplay();
+}
+void Keyboard(unsigned char key, int x, int y) {
+	switch (key) {
+	case 'Q':
+		exit(0); break;
+	case 'q':
+		exit(0); break;
+	case 27:
+		exit(0); break;
+	case 's' :
+		if (FlatShaded) {
+			FlatShaded = 0;
+			glShadeModel(GL_SMOOTH);
+		}
+		else {
+			FlatShaded = 1;
+			glShadeModel(GL_FLAT);
+		}
+		glutPostRedisplay();
+		break;
+	}
+}
+void Reshape(int w, int h) {
+	//cout << "window size (" << w << ", " << h << ")" << endl;
+	glViewport(0, 0, w, h);
+	GLfloat WidthFactor = (GLfloat)w / (GLfloat)g_window_w;
+	GLfloat HeightFactor = (GLfloat)h / (GLfloat)g_window_h;
+	glMatrixMode(GL_PROJECTION);
+	glLoadIdentity();
+	glOrtho(-1.0, 1.0, -1.0, 1.0, -1.0, 1.0);
+}
