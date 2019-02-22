@@ -1,0 +1,62 @@
+Skybox.cpp
+
+#include "skybox.h"
+#include <stdio.h>
+#include <iostream>
+#include <stdlib.h>
+#include "Include/GL/freeglut.h"
+
+#define TEX_SIZE 3
+#define GL_CLAMP_TO_EDGE 0x812F
+const char *texFiles[6] = {
+	"Resource/Skybox/front.bmp",
+	"Resource/Skybox/back.bmp",
+	"Resource/Skybox/left.bmp",
+	"Resource/Skybox/right.bmp",
+	"Resource/Skybox/up.bmp",
+	"Resource/Skybox/down.bmp"
+};
+
+Skybox::Skybox(void) {
+}
+Skybox::~Skybox(void) {}
+void Skybox::draw() {
+	glEnable(GL_TEXTURE_2D);
+	glMatrixMode(GL_MODELVIEW);
+	glPushMatrix();
+	glColor3f(0, 0, 0);
+
+	glBegin(GL_QUADS);
+	glEnd();
+
+	glBegin(GL_QUADS);
+	glEnd();
+
+	glBegin(GL_QUADS);
+	glEnd();
+
+	glBegin(GL_QUADS);
+	glEnd();
+
+	glBegin(GL_QUADS);
+	glEnd();
+
+	glBegin(GL_QUADS);
+	glEnd();
+
+	glDepthMask(GL_TRUE);
+	glEnable(GL_DEPTH_TEST);
+	glPopMatrix();
+	glDisable(GL_TEXTURE_2D);
+}
+
+	//텍스쳐 생성
+	GLuint texId;
+	glGenTextures(1, &texId);
+	glBindTexture(GL_TEXTURE_2D, texId);
+	//텍스쳐 확장 보간법 선택
+	//메모리 해제
+	free(img->data);
+	free(img);
+	return texId;
+}
