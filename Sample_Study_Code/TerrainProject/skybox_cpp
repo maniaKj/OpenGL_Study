@@ -1,10 +1,11 @@
-Skybox.cpp
-
 #include "skybox.h"
 #include <stdio.h>
 #include <iostream>
 #include <stdlib.h>
 #include "Include/GL/freeglut.h"
+#include "Include/GL/GLAux.h" // auxDIGImageLoad() 함수 사용
+#pragma comment (lib, "Lib/Glaux.lib") //glaux 쓰려면 해줘야 함
+#pragma comment (lib, "legacy_stdio_definitions.lib")  //glaux 쓰려면 해줘야 함.
 
 #define TEX_SIZE 3
 #define GL_CLAMP_TO_EDGE 0x812F
@@ -18,30 +19,63 @@ const char *texFiles[6] = {
 };
 
 Skybox::Skybox(void) {
+	for (int i = 0; i < 6; i++) textures[i] = _loadTexture(texFiles[i]);
 }
 Skybox::~Skybox(void) {}
 void Skybox::draw() {
 	glEnable(GL_TEXTURE_2D);
 	glMatrixMode(GL_MODELVIEW);
 	glPushMatrix();
+	glDisable(GL_DEPTH_TEST); //스카이 박스의 깊이 정보가 사용되지 않도록 비활성화
+	glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_DECAL);
 	glColor3f(0, 0, 0);
 
+	glBindTexture(GL_TEXTURE_2D, textures[0]); //앞
 	glBegin(GL_QUADS);
+	glTexCoord2f(0.0, 0.0); glVertex3f(-TEX_SIZE, -TEX_SIZE, -TEX_SIZE);
+	glTexCoord2f(1.0, 0.0); glVertex3f(TEX_SIZE, -TEX_SIZE, -TEX_SIZE);
+	glTexCoord2f(1.0, 1.0); glVertex3f(TEX_SIZE, TEX_SIZE, -TEX_SIZE);
+	glTexCoord2f(0.0, 1.0); glVertex3f(-TEX_SIZE, TEX_SIZE, -TEX_SIZE);
 	glEnd();
 
+	glBindTexture(GL_TEXTURE_2D, textures[1]); //뒤
 	glBegin(GL_QUADS);
+	glTexCoord2f(0.0, 0.0); glVertex3f(TEX_SIZE, -TEX_SIZE, TEX_SIZE);
+	glTexCoord2f(1.0, 0.0); glVertex3f(-TEX_SIZE, -TEX_SIZE, TEX_SIZE);
+	glTexCoord2f(1.0, 1.0); glVertex3f(-TEX_SIZE, TEX_SIZE, TEX_SIZE);
+	glTexCoord2f(0.0, 1.0); glVertex3f(TEX_SIZE, TEX_SIZE, TEX_SIZE);
 	glEnd();
 
+	glBindTexture(GL_TEXTURE_2D, textures[2]); //좌
 	glBegin(GL_QUADS);
+	glTexCoord2f(0.0, 0.0); glVertex3f(TEX_SIZE, -TEX_SIZE, -TEX_SIZE);
+	glTexCoord2f(1.0, 0.0); glVertex3f(TEX_SIZE, -TEX_SIZE, TEX_SIZE);
+	glTexCoord2f(1.0, 1.0); glVertex3f(TEX_SIZE, TEX_SIZE, TEX_SIZE);
+	glTexCoord2f(0.0, 1.0); glVertex3f(TEX_SIZE, TEX_SIZE, -TEX_SIZE);
 	glEnd();
 
+	glBindTexture(GL_TEXTURE_2D, textures[3]); //우
 	glBegin(GL_QUADS);
+	glTexCoord2f(0.0, 0.0); glVertex3f(-TEX_SIZE, -TEX_SIZE, TEX_SIZE);
+	glTexCoord2f(1.0, 0.0); glVertex3f(-TEX_SIZE, -TEX_SIZE, -TEX_SIZE);
+	glTexCoord2f(1.0, 1.0); glVertex3f(-TEX_SIZE, TEX_SIZE, -TEX_SIZE);
+	glTexCoord2f(0.0, 1.0); glVertex3f(-TEX_SIZE, TEX_SIZE, TEX_SIZE);
 	glEnd();
 
+	glBindTexture(GL_TEXTURE_2D, textures[4]); //위
 	glBegin(GL_QUADS);
+	glTexCoord2f(1.0, 0.0); glVertex3f(-TEX_SIZE, TEX_SIZE, -TEX_SIZE);
+	glTexCoord2f(0.0, 1.0); glVertex3f(TEX_SIZE, TEX_SIZE, -TEX_SIZE);
+	glTexCoord2f(0.0, 0.0); glVertex3f(TEX_SIZE, TEX_SIZE, TEX_SIZE);
+	glTexCoord2f(1.0, 1.0); glVertex3f(-TEX_SIZE, TEX_SIZE, TEX_SIZE);
 	glEnd();
 
+	glBindTexture(GL_TEXTURE_2D, textures[5]); //아래
 	glBegin(GL_QUADS);
+	glTexCoord2f(0.0, 0.0); glVertex3f(-TEX_SIZE, -TEX_SIZE, TEX_SIZE);
+	glTexCoord2f(1.0, 0.0); glVertex3f(TEX_SIZE, -TEX_SIZE, TEX_SIZE);
+	glTexCoord2f(1.0, 1.0); glVertex3f(TEX_SIZE, -TEX_SIZE, -TEX_SIZE);
+	glTexCoord2f(0.0, 1.0); glVertex3f(-TEX_SIZE, -TEX_SIZE, -TEX_SIZE);
 	glEnd();
 
 	glDepthMask(GL_TRUE);
@@ -50,11 +84,19 @@ void Skybox::draw() {
 	glDisable(GL_TEXTURE_2D);
 }
 
+Skybox::uint Skybox::_loadTexture(pcStr filename) {
+	AUX_RGBImageRec *img = auxDIBImageLoadA(filename); //aux는 내부적으로 malloc이므로 free 필수
 	//텍스쳐 생성
 	GLuint texId;
 	glGenTextures(1, &texId);
 	glBindTexture(GL_TEXTURE_2D, texId);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, img->sizeX, img->sizeY, 0, GL_RGB, GL_UNSIGNED_BYTE, img->data);
 	//텍스쳐 확장 보간법 선택
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	//Clamp to edge 파라미터는 edge의 색상으로 경계를 확장
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 	//메모리 해제
 	free(img->data);
 	free(img);
