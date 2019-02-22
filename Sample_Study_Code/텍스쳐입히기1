@@ -1,0 +1,50 @@
+#include "Include/GL/freeglut.h"
+#define Width 4
+#define Height 4
+GLubyte MyTexture[Width][Height][3];
+
+void FillTexture() {
+	int s, t;
+	for (s = 0; s < Width; s++) {
+		for (t = 0; t < Height; t++) {
+			GLubyte intensity = ((s + t) % 2) * 255;
+			
+			MyTexture[s][t][0] = intensity;
+			MyTexture[s][t][1] = intensity;
+			MyTexture[s][t][2] = intensity;
+		}
+	}
+}
+
+void Init() {
+	glClearColor(0.0, 0.0, 0.0, 0.0);
+	FillTexture();
+	glTexImage2D(GL_TEXTURE_2D, 0, 3, Width, Height, 0, GL_RGB, GL_UNSIGNED_BYTE, &MyTexture[0][0][0]);
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT); // 텍스쳐를 s혹은 t방향으로 어떻게 확장시킬 것인지 방법 명시
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST); //텍스쳐 계산 방법 결정. GL_NEAREST는 점 샘플링, GL_LINEAR는 양방향 선형보간
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR); //텍스쳐 계산 방법 결정. GL_NEAREST는 점 샘플링, GL_LINEAR는 양방향 선형보간
+	glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_DECAL); //텍스쳐 환경명시. 물체면에 그대로 입히는지, 물체색과 조합시키는지 -> REPLACE(대체), MODULATE(곱), DECAL(알파값 활용 더하기), BLEND(명시된 색과 곱)
+	glEnable(GL_TEXTURE_2D);
+}
+
+void display() {
+	glClear(GL_COLOR_BUFFER_BIT);
+	glBegin(GL_QUADS);
+	glTexCoord2f(0.0, 0.0); glVertex3f(-1.0, -1.0, 0.0);
+	glTexCoord2f(0.0, 3.0); glVertex3f(-1.0, 1.0, 0.0);
+	glTexCoord2f(3.0, 3.0); glVertex3f(1.0, 1.0, 0.0);
+	glTexCoord2f(3.0, 0.0); glVertex3f(1.0, -1.0, 0.0);
+	glEnd();
+	glutSwapBuffers();
+}
+
+int main(int argc, char **argv) {
+	glutInit(&argc, argv);
+	glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGBA);
+	glutCreateWindow("OpenGL Studying Sample");
+	Init();
+	glutDisplayFunc(display);
+	glutMainLoop();
+	return 0;
+}
