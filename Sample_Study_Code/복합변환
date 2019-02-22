@@ -1,0 +1,11 @@
+void Display() {
+	glClear(GL_COLOR_BUFFER_BIT);
+	glViewport(0, 0, 500, 500);
+	glColor3f(1.0, 0.0, 0.0);
+	glMatrixMode(GL_MODELVIEW);
+	glLoadIdentity();// 현 변환 행렬 초기화(항등원)
+	glRotatef(45.0, 0.0, 0.0, 1.0); //좌표계 회전
+	glTranslatef(0.6, 0.0, 0.0); // 좌표계 이동
+	glutSolidCube(0.3);
+	glFlush();
+}
