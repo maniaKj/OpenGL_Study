@@ -1,0 +1,196 @@
+Terrain.cpp
+#include "terrain.h"
+Terrain::Terrain(pcStr heightFile, pcStr surfaceTexFile, GLuint width, GLint height) {
+	_map_width = width;
+	_map_height = height;
+
+	img = NULL;
+	_texId_ground = 0; _texId_water = 0;
+	_height = 0;
+
+	img = auxDIBImageLoad(surfaceTexFile);//지형 텍스쳐 설정
+	glGenTextures(1, &_texId_ground);
+	glBindTexture(GL_TEXTURE_2D, _texId_ground);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, img->sizeX, img->sizeY, 0, GL_RGB, GL_UNSIGNED_BYTE, img->data);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+
+	const char *waterTexFile = "Resource/Water/water_seamless_02.bmp"; //물 텍스쳐 설정
+	img = auxDIBImageLoad(waterTexFile);
+	glGenTextures(1, &_texId_water);
+	glBindTexture(GL_TEXTURE_2D, _texId_water);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, img->sizeX, img->sizeY, 0, GL_RGB, GL_UNSIGNED_BYTE, img->data);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+
+	_height = readRawData(heightFile, width, height);
+
+	int  i;
+	for (i = 0, minHeight = 2 ^ 10; i < _map_width * height; i++) {
+		if (minHeight > _height[i]) { minHeight = _height[i]; }
+	}
+
+	waterLevel = (GLfloat)minHeight + 100; //물 높이 설정
+	
+	for (int i = 0; i < _map_width * _map_height + 1; i++) _height[i] -= minHeight; //최소 높이 기준으로 지형을 잘라냄
+
+	baseTerrain = glGenLists(5); //4단계 지형 타일링, 물 등 5개의 디스플레이 리스트
+	glNewList(baseTerrain, GL_COMPILE);
+	TileTerrain(1);
+	glEndList();
+	glNewList(baseTerrain + 1, GL_COMPILE);
+	TileTerrain(4);
+	glEndList();
+	glNewList(baseTerrain + 2, GL_COMPILE);
+	TileTerrain(8);
+	glEndList();
+	glNewList(baseTerrain + 3, GL_COMPILE);
+	TileTerrain(16);
+	glEndList();
+	glNewList(baseTerrain + 4, GL_COMPILE);
+	RenderWater(); //물 그리기
+	glEndList();
+}
+
+Terrain::~Terrain() {
+	//메모리 반환
+	if (_height != 0) { delete[] _height; }
+	if (_texId_ground != 0) { glDeleteTextures(1, &_texId_ground); }
+	if (_texId_water != 0) { glDeleteTextures(1, &_texId_water); }
+	if (img != 0) { free(img->data); free(img); }
+}
+
+void Terrain::RenderTerrain(GLfloat x, GLfloat y) {// 타일링한 지형 디스플레이 리스트를 불러오는 함수
+	int i, j;
+	glPushMatrix();
+	//레벨 1 디테일 지형
+	glTranslatef(getTileX(x) * (_map_width - 1), 0.0, getTileY(y) * (_map_height - 1));
+	glCallList(baseTerrain);
+	glPopMatrix();
+	//레벨 4 디테일 지형, 레벨 1 제외하고 3 * 3 단위로 그림
+	for (i = -1; i < 2; i++) {
+		for (j = -1; j < 2; j++) {
+			if (!(i == 0 && j == 0)) {
+				glPushMatrix();
+				glTranslatef(getTileX(x) * (_map_width - 1) + (i * (_map_width - 1)), 0.0, getTileY(y) * (_map_height - 1) + (j * (_map_height - 1)));
+				glCallList(baseTerrain + 1);
+				glPopMatrix();
+			}
+		}
+	}
+	//레벨 8 디테일 지형, 레벨 4 블록 제외하고 5*5 단위로 그림.
+	for (i = -2; i < 3; i++) {
+		for (j = -2; j < 3; j++) {
+			if ((i < -1 || i > 1) || (j < -1 || j > 1)) {
+				glPushMatrix();
+				glTranslatef(getTileX(x) * (_map_width - 1) + (i * (_map_width - 1)), 0.0, getTileY(y) * (_map_height - 1) + (j * (_map_height - 1)));
+				glCallList(baseTerrain + 2);
+				glPopMatrix();
+			}
+		}
+	}
+	//레벨 16 디테일 지형, 레벨 8 블록 제외하고 7*7 단위로 그림.
+	for (i = -3; i < 4; i++) {
+		for (j = -3; j < 4; j++) {
+			if ((i < -2 || i > 2) || (j < -2 || j > 2)) {
+				glPushMatrix();
+				glTranslatef(getTileX(x) * (_map_width - 1) + (i * (_map_width - 1)), 0.0, getTileY(y) * (_map_height - 1) + (j * (_map_height - 1)));
+				glCallList(baseTerrain + 3);
+				glPopMatrix();
+			}
+		}
+	}
+	//물 디스플레이 리스트. 3 * 3 면적에 그림
+	for (i = -2; i < 3; i++) {
+		for (j = -2; j < 3; j++) {
+			glPushMatrix();
+			glTranslatef(getTileX(x) * (_map_width - 1) + (i * (_map_width - 1)), 0.0, getTileY(y) * (_map_height - 1) + (j * (_map_height - 1)));
+			glCallList(baseTerrain + 4);
+			glPopMatrix();
+		}
+	}
+}
+
+void Terrain::TileTerrain(GLint levelofDetail) {
+	glEnable(GL_TEXTURE_2D);
+	glMatrixMode(GL_MODELVIEW);
+	glPushMatrix();
+
+	glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_DECAL);
+	glBindTexture(GL_TEXTURE_2D, _texId_ground);
+
+	float coordX = (float) 1.0f / _map_width;
+	float coordZ = (float) 1.0f / _map_height;
+	for (int z = 0; z < _map_height; z += levelofDetail) {
+		glBegin(GL_TRIANGLE_STRIP);
+		for (int x = 0; x < _map_width; x += levelofDetail) {
+			glTexCoord2f(coordX * x, coordZ * z);
+			glVertex3f(x, _height[z * _map_height + x], z); //텍스쳐 정점과 물체 정점 연결
+			glTexCoord2f(coordX * x, coordZ * (z + levelofDetail));
+			glVertex3f(x, _height[(z + levelofDetail) * _map_height + x], z + levelofDetail);
+		}
+		glEnd();
+	}
+	glPopMatrix();
+	glDisable(GL_TEXTURE_2D);
+}
+void Terrain::RenderWater() { //물 그리기
+	glEnable(GL_TEXTURE_2D);
+	glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
+
+	glEnable(GL_BLEND);
+	glDisable(GL_CULL_FACE); //후면 제거 비활성화
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA); //블렌딩 방식 지정
+	glColor4f(0.0, 0.4, 0.5, 0.7);
+
+	glBindTexture(GL_TEXTURE_2D, _texId_water); //텍스쳐 맵핑
+	glBegin(GL_QUADS);
+	glTexCoord2f(0.0, 0.0); glVertex3f(0.0, waterLevel, 0.0);
+	glTexCoord2f(15.0, 0.0); glVertex3f(0.0, waterLevel, _map_height);
+	glTexCoord2f(15.0, 15.0); glVertex3f(_map_height, waterLevel, _map_height);
+	glTexCoord2f(0.0, 15.0); glVertex3f(_map_height, waterLevel, 0.0);
+	glEnd();
+	glEnable(GL_CULL_FACE); //후면 제거 활성화
+	glDisable(GL_BLEND); //블렌드 비활성화
+	glDisable(GL_TEXTURE_2D); 
+}
+
+Terrain::ubyte *Terrain::readRawData(pcStr filename, uint w, uint h) {
+	FILE *f;
+	fopen_s(&f, filename, "rb"); //지형 높이 데이터 열기
+	if (!f) { //파일이 없을 경우
+		printf("file not fount : %s\n", filename);
+		throw std::exception();
+	}
+	//raw 파일은 헤더가 없어서 파일의 크기 = 이미지의 픽셀 수이기 때문에 width * height 만큼의 공간을 할당하면 모든 데이터를 읽어올 수 있음
+	ubyte * raw = new ubyte[w * h];
+	fread(raw, sizeof(ubyte), w * h, f); //높이 데이터 읽어오기
+	fclose(f);
+	return raw;
+}
+
+GLfloat Terrain::getHeight(GLfloat _x, GLfloat _y) {
+	//텍스처 이미지의 해당 _x, _y 에서 높이 데이터를 가져오는 함수
+	int x, y;
+	//텍스처 이미지 범위를 넘어가면 동일한 텍스처를 반복
+	if (_x < 0) x = _map_width + ((int)_x%_map_width);
+	else x = ((int)_x%_map_width);
+
+	if (_y < 0) y = _map_height + ((int)_y%_map_height);
+	else y = ((int)_y%_map_height);
+	//좌표 값을 텍스쳐 크기 안에 한정시킴. 높이 데이터는 1차원 배열에 저장되어 있으므로 행렬 처리
+	return (_height[y * _map_height + x] / 5 + 10);
+}
+
+GLint Terrain::getTileX(GLfloat x) {
+	if (x > 0) return ((int)x) / (int)_map_width;
+	else return ((int)x) / (int)_map_width - 1;
+}
+
+GLint Terrain::getTileY(GLfloat y) {
+	if (y > 0) return ((int)y) / (int)_map_height;
+	else return ((int)y) / (int)_map_height - 1;
+}
+
