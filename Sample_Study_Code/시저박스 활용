@@ -1,0 +1,128 @@
+#include <windows.h>
+#include "Include/GL/GL.H"
+#include "Include/GL/GLU.H"
+#include "Include/GL/glut.h"
+#include <stdio.h>
+#include <math.h>
+#pragma comment(linker, "/SUBSYSTEM:WINDOWS") //도스 창이 나타나지 않게 하기 위해 -> 프로젝트 속성에서 링커->시스템->하위 시스템 window로 변경
+#pragma comment(linker, "/ENTRY:mainCRTStartup") //윈도우 엔트리 포인트를 변경
+
+GLfloat light_position[] = { 5.0, 10.0, 50.0, 0.0 }; //광원 위치
+int width = 800, height = 400; //윈도우 크기
+GLint startX = 100, startY = 120; //시저 박스 영역
+GLint endX = 250, endY = 270;
+
+void Init() {
+	glShadeModel(GL_SMOOTH);
+	glClearColor(0.1f, 0.1f, 0.2f, 0.0f);
+	glMatrixMode(GL_PROJECTION);
+	glLoadIdentity();
+	glOrtho(0.0, 1.0, 0.0, 1.0, -1.0, 1.0);
+	glEnable(GL_DEPTH_TEST);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE);
+}
+
+void Reshape(GLint w, GLint h) {
+	width = w; height = h;
+	glutPostRedisplay();
+}
+
+void SpecialKeys(GLint key, GLint x, GLint y) {
+	switch (key) {
+	case GLUT_KEY_RIGHT :
+		if (endX <= 400) {
+			startX += 1; endX += 1;
+		}
+		break;
+		case GLUT_KEY_LEFT :
+			if (startX >= 0) {
+				startX -= 1; endX -= 1;
+			}
+			break;
+		case GLUT_KEY_UP : //GLUT과 GL의 y축은 서로 반대 방향으로 움직임
+			if (endY <= 800) {
+				startY -= 1; endY -= 1;
+			}
+			break;
+		case GLUT_KEY_DOWN :
+			if (startY >= 0) {
+				startY += 1; endY += 1;
+			}
+			break;
+	}
+	glutPostRedisplay();
+}
+
+void MouseClick(GLint button, GLint state, GLint x, GLint y) {
+	if (GLUT_LEFT_BUTTON == button && GLUT_DOWN == state) {
+		startX = x; startY = y;
+	}
+}
+
+void MouseMove(GLint x, GLint y) {
+	endX = x; endY = y;
+	glutPostRedisplay();
+}
+
+void DrawScissorBox() { //시저 박스 자체를 화면에 나타내기 위한 함수
+	glBegin(GL_POLYGON);
+	glVertex3f((GLfloat)startX / (GLfloat)(width / 2), (GLfloat)(height - startY) / (GLfloat)height, 1.0);
+	glVertex3f((GLfloat)startX / (GLfloat)(width / 2), (GLfloat)(height - endY) / (GLfloat)height, 1.0);
+	glVertex3f((GLfloat)endX / (GLfloat)(width / 2), (GLfloat)(height - endY) / (GLfloat)height, 1.0);
+	glVertex3f((GLfloat)endX / (GLfloat)(width / 2), (GLfloat)(height - startY) / (GLfloat)height, 1.0);
+	glEnd();
+}
+
+void DrawScene() { //원구, 육면체, 차 주전자 그리는 함수
+	glPushMatrix(); glColor3f(0.5, 0.5, 1.0); glutSolidSphere(0.7, 100.0, 100.0); glPopMatrix();
+	glPushMatrix(); glColor3f(1.0, 0.0, 0.5); glTranslatef(2.0, 2.0, 0.0); glutSolidCube(1.8); glPopMatrix();
+	glPushMatrix(); glColor3f(1.0, 1.0, 0.0); glTranslatef(0.0, 2.0, 0.0); glutSolidTeapot(0.5); glPopMatrix();
+}
+
+void display() { //디스플레이 콜백함수
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	glMatrixMode(GL_MODELVIEW);
+	glLoadIdentity();
+	glViewport(0, 0, width / 2, height); //첫번째 뷰 포트
+	glPushMatrix();
+	glPushMatrix();
+	glScalef(0.15, 0.15, 0.15); glTranslatef(2.0, 2.0, 0.0);
+	DrawScene(); //시저 박스 적용 이전 
+	glPopMatrix();
+	glEnable(GL_BLEND); //블렌딩 기능활성화
+	glColor4f(0.8, 0.8, 0.8, 0.5);
+	DrawScissorBox(); //시저 박스 그리기
+	glDisable(GL_BLEND);
+	glPopMatrix();
+	glLoadIdentity();
+	glViewport(width / 2, 0, width / 2, height); //두번째 뷰 포트
+	glPushMatrix();
+	glEnable(GL_SCISSOR_TEST); //시저 테스트 활성화
+	if (endY > startY) //오려낼 부분을 시저 박스로 정의
+		glScissor(startX + 400, abs(height - endY), abs(endX - startX), abs(endY - startY));
+	else glScissor(startX + 400, abs(height - startY), abs(endX - startX), abs(endY - startY));
+	glPushMatrix();
+	glScalef(0.15, 0.15, 0.15); glTranslatef(2.0, 2.0, 0.0);
+	DrawScene(); //시저 테스트 이후 장면
+	glPopMatrix();
+	glDisable(GL_SCISSOR_TEST);
+	glPopMatrix();
+	glutSwapBuffers();
+}
+
+int main(int argc, char** argv) {
+	glutInit(&argc, argv);
+	glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGBA | GLUT_DEPTH);
+	glutInitWindowSize(width, height);
+	glutInitWindowPosition(100, 50);
+	glutCreateWindow("OpenGL Studying Sample");
+	Init();
+	glutReshapeFunc(Reshape);
+	glutSpecialFunc(SpecialKeys);
+	glutMouseFunc(MouseClick);
+	glutMotionFunc(MouseMove);
+	glutDisplayFunc(display);
+	glutMainLoop();
+	
+	return 0;
+}
