@@ -1,0 +1,33 @@
+#include "Include/GL/freeglut.h"
+
+void display() {
+	glClear(GL_COLOR_BUFFER_BIT);
+	glEnable(GL_BLEND); //블렌딩 기능활성화
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA); //혼합 모드 설정.
+	glBegin(GL_TRIANGLES); //삼각형 두개, 하나 앞쪽, 하나 뒷쪽, 뒷쪽을 먼저 명시해야 함
+	glColor4f(1.0, 1.0, 0.0, 1.0);
+	glVertex3f(-0.75, -0.5, 0.0);
+	glVertex3f(0.25, -0.5, 0.0);
+	glVertex3f(-0.25, 0.5, 0.0);
+	glColor4f(1.0, 0.0, 0.0, 0.2); //alpha 값 0.2 설정
+	glVertex3f(-0.05, -0.5, 1.0);
+	glVertex3f(0.95, -0.5, 1.0);
+	glVertex3f(0.45, 0.5, 1.0);
+	glEnd();
+	glDisable(GL_BLEND);
+	glFlush();
+}
+
+int main(int argc, char** argv) {
+	glutInit(&argc, argv);
+	glutInitDisplayMode(GLUT_SINGLE | GLUT_RGBA);
+	glutInitWindowSize(500, 500);
+	glutInitWindowPosition(100, 100);
+	glutCreateWindow("OpenGL Studying Sample");
+	glClearColor(1.0, 1.0, 1.0, 1.0);
+
+	glutDisplayFunc(display);
+	glutMainLoop();
+	
+	return 0;
+}
