@@ -2,7 +2,7 @@
 #include <Windows.h>
 #include <io.h>
 #include <stdio.h>
-#define GLEW_STATIC
+#define GLEW_STATIC //정적 라이브러리 파일 활성화
 #include <GL/glew.h>
 #include <freeglut.h>
 
